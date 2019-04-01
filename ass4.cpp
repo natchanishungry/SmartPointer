@@ -88,6 +88,15 @@ public:
     delete secret;
   }
 
+  int getValue()
+  {
+    return *secret;
+  }
+
+  void setValue(int x)
+  {
+    *secret = x;
+  }
 
 private:
   int* secret;
@@ -95,6 +104,11 @@ private:
 
 int main()
 {
+  //Testing getValue and setValue
+  SmartPointer sPointer(11);
+  cout << sPointer.getValue() << endl;
+  sPointer.setValue(13);
+  cout << sPointer.getValue() << endl;
   return 0;
 
 }
