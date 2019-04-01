@@ -1,6 +1,7 @@
 #include <memory>
 #include <string>
 #include <iostream>
+#include <exception>
 
 
 /*
@@ -71,16 +72,48 @@ want to observe an object, but do not require it to remain alive.
 
 using namespace std;
 
+class NegativeNumber: public exception
+{
+public:
+  virtual const char* what() const throw()
+  {
+    return "We are only interested in positive numbers.";
+  }
+};
+NegativeNumber n;
+
+template <typename T>
 class SmartPointer{
 public:
   SmartPointer()
   {
-    secret = new int(0);
+    try{
+      secret = new int(0);
+    }
+    catch(std::bad_alloc& ba)
+    {
+      cout << "The variable has not been allocated. bad_alloc caught: "<< ba.what() << endl;
+    }
+
   }
 
-  SmartPointer(int x)
+  SmartPointer(T x)
   {
-    secret = new int(x);
+    try{
+      secret = new T(x);
+      if(x<0)
+      {
+        throw n;
+      }
+    }
+    catch(NegativeNumber& n)
+    {
+      cout << n.what() << endl;
+    }
+    catch(std::bad_alloc& ba)
+    {
+      cout << "The variable has not been allocated. bad_alloc caught: "<< ba.what() << endl;
+    }
   }
 
   ~SmartPointer()
@@ -93,22 +126,80 @@ public:
     return *secret;
   }
 
-  void setValue(int x)
+  void setValue(T x)
   {
-    *secret = x;
+    try{
+      if(x<0){
+        throw n;
+      }
+      else *secret = x;
+    }
+    catch(NegativeNumber& n)
+    {
+      cout << n.what() << endl;
+
+    }
+
   }
+  template <typename U>
+  friend SmartPointer<U> operator+(const SmartPointer<U>& s1, const SmartPointer<U>& s2);
+  template <typename U>
+  friend SmartPointer<U> operator-(const SmartPointer<U>& s1, const SmartPointer<U>& s2);
+  template <typename U>
+  friend SmartPointer<U> operator*(const SmartPointer<U>& s1, const SmartPointer<U>& s2);
 
 private:
-  int* secret;
+  T* secret;
 };
+
+template <typename T>
+SmartPointer<T> operator+(const SmartPointer<T>& s1, const SmartPointer<T>& s2)
+{
+  T x = *(s1.secret) + *(s2.secret);
+  SmartPointer<T> s3(x);
+  //this.setValue(x);
+  return s3;
+}
+
+template <typename T>
+SmartPointer<T> operator-(const SmartPointer<T>& s1, const SmartPointer<T>& s2)
+{
+  T x = *(s1.secret) - *(s2.secret);
+  SmartPointer<T> s3(x);
+  return s3;
+}
+
+template <typename T>
+SmartPointer<T> operator*(const SmartPointer<T>& s1, const SmartPointer<T>& s2)
+{
+  T x = *(s1.secret) * *(s2.secret);
+  SmartPointer<T> s3(x);
+  return s3;
+}
+
 
 int main()
 {
   //Testing getValue and setValue
-  SmartPointer sPointer(11);
+  SmartPointer<int> sPointer(11);
   cout << sPointer.getValue() << endl;
   sPointer.setValue(13);
   cout << sPointer.getValue() << endl;
+  //Testing NegativeNumber exception
+  SmartPointer<float>  sPointer2(-2.5);
+  //Testing +, -, *
+  SmartPointer<int> sPointer3(12);
+  SmartPointer<int> sPointer4(10);
+  SmartPointer<int> sPointer5 = sPointer4 + sPointer3;
+  cout << sPointer5.getValue() << endl;
+  SmartPointer<int> sPointer6 = sPointer4 - sPointer3;      //This should throw a NegativeNumber exception
+  cout << sPointer6.getValue() << endl;
+/*  sPointer5 = sPointer4 - sPointer4;
+  cout << sPointer5.getValue() << endl;
+  sPointer5 = sPointer4 * sPointer3;
+  cout << sPointer5.getValue() << endl;*/
+
+
   return 0;
 
 }
